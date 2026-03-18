@@ -173,9 +173,12 @@ export default function Page() {
   const [menu, setMenu] = useState(false);
   const [modal, setModal] = useState<typeof DANCE[0] | null>(null);
   const [formSent, setFormSent] = useState(false);
+  const [styleOpen, setStyleOpen] = useState(false);
+  const [styleVal, setStyleVal] = useState("");
   const sy = useScroll();
   const scrolled = sy > 40;
   const modalRef = useRef<HTMLDivElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
 
   const c1=useCount(2,1200), c2=useCount(500,2000), c3=useCount(6,800), c4=useCount(15,1200);
 
@@ -209,6 +212,16 @@ export default function Page() {
     document.addEventListener("mousemove", handler, {passive:true});
     return () => document.removeEventListener("mousemove", handler);
   }, []);
+
+  /* Close style dropdown on outside click or Escape */
+  useEffect(() => {
+    if (!styleOpen) return;
+    const onClick = (e: MouseEvent) => { if (dropRef.current && !dropRef.current.contains(e.target as Node)) setStyleOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setStyleOpen(false); };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onClick); document.removeEventListener("keydown", onKey); };
+  }, [styleOpen]);
 
   /* #B12: form submission handler */
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -605,7 +618,26 @@ export default function Page() {
                 <div><label htmlFor="name" className="mb-1.5 block text-xs font-medium text-gray">Имя</label><input type="text" id="name" name="name" required autoComplete="given-name" placeholder="Как тебя зовут?" className="w-full rounded-xl border border-line bg-dark px-4 py-3 text-sm text-white placeholder-gray-dark outline-none focus:border-pop focus:shadow-[0_0_20px_rgba(255,107,53,0.08)] transition-all"/></div>
                 {/* #A44: autocomplete; #A45: inputMode */}
                 <div><label htmlFor="phone" className="mb-1.5 block text-xs font-medium text-gray">Телефон</label><input type="tel" id="phone" name="phone" required autoComplete="tel" inputMode="tel" placeholder="+998" pattern="^\+?[\d\s()\-]{7,}$" onInput={e=>(e.target as HTMLInputElement).setCustomValidity("")} className="w-full rounded-xl border border-line bg-dark px-4 py-3 text-sm text-white placeholder-gray-dark outline-none focus:border-pop focus:shadow-[0_0_20px_rgba(255,107,53,0.08)] transition-all"/></div>
-                <div><label htmlFor="style" className="mb-1.5 block text-xs font-medium text-gray">Направление</label><select id="style" name="style" autoComplete="off" className="w-full cursor-pointer rounded-xl border border-line bg-dark px-4 py-3 text-sm text-white outline-none focus:border-pop transition-all"><option value="">Не знаю ещё — помогите выбрать</option>{DANCE.map(d=><option key={d.t} value={d.t}>{d.t}</option>)}</select></div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-gray">Направление</label>
+                  <div ref={dropRef} className="relative">
+                    <input type="hidden" name="style" value={styleVal}/>
+                    <button type="button" onClick={()=>setStyleOpen(v=>!v)} aria-expanded={styleOpen} aria-haspopup="listbox" className={`flex w-full cursor-pointer items-center justify-between rounded-xl border bg-dark px-4 py-3 text-sm outline-none transition-all ${styleOpen?"border-pop shadow-[0_0_20px_rgba(255,107,53,0.08)]":"border-line"} ${styleVal?"text-white":"text-gray-dark"}`}>
+                      <span>{styleVal||"Не знаю ещё — помогите выбрать"}</span>
+                      {I.chev(styleOpen)}
+                    </button>
+                    {styleOpen && (
+                      <ul role="listbox" className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-line bg-card/95 py-1 shadow-2xl backdrop-blur-xl animate-[fadeUp_0.15s_ease-out]">
+                        {[{t:"",label:"Не знаю ещё — помогите выбрать"},...DANCE.map(d=>({t:d.t,label:d.t}))].map(opt=>(
+                          <li key={opt.t} role="option" aria-selected={styleVal===opt.t} onClick={()=>{setStyleVal(opt.t);setStyleOpen(false);}} className={`flex cursor-pointer items-center gap-2 px-4 py-2.5 text-sm transition-colors hover:bg-line-light ${styleVal===opt.t?"text-pop":"text-gray hover:text-white"}`}>
+                            {styleVal===opt.t && <span className="shrink-0">{I.check}</span>}
+                            <span>{opt.label}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
                 <button type="submit" className="group relative w-full cursor-pointer overflow-hidden rounded-xl bg-pop py-3.5 text-base font-semibold text-white transition-all hover:glow-pop">
                   <span className="relative z-10">Записаться бесплатно</span>
                   <span className="absolute inset-0 -translate-x-full bg-pop-light transition-transform duration-500 group-hover:translate-x-0"/>
